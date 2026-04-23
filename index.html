@@ -157,29 +157,34 @@
     }
 
     function loadOnlineUsers() {
-        database.ref("status").on("value", (snapshot) => {
+    // Lấy toàn bộ danh sách users đã đăng ký
+    database.ref("users").on("value", (userSnapshot) => {
+        // Lấy trạng thái online hiện tại
+        database.ref("status").on("value", (statusSnapshot) => {
             const onlineList = document.getElementById("online-list");
             onlineList.innerHTML = "";
-            snapshot.forEach((child) => {
-                if (child.val() === true) {
-                    const name = child.key;
-                    const initial = name.charAt(0).toUpperCase();
-                    const div = document.createElement("div");
-                    div.className = "user-item active";
-                    div.innerHTML = `<div class="user-avatar">${initial}</div><div class="user-name-text">${name}</div>`;
-                    onlineList.appendChild(div);
-                }
+            const statuses = statusSnapshot.val() || {};
+
+            userSnapshot.forEach((child) => {
+                const name = child.key;
+                const isOnline = statuses[name] === true; // Kiểm tra xem có online không
+                
+                const initial = name.charAt(0).toUpperCase();
+                const div = document.createElement("div");
+                
+                // Nếu online thì thêm class 'active', nếu không thì làm mờ đi
+                div.className = `user-item ${isOnline ? 'active' : ''}`;
+                div.style.opacity = isOnline ? "1" : "0.4"; // Người offline sẽ bị mờ
+                
+                div.innerHTML = `
+                    <div class="user-avatar" style="background: ${isOnline ? '#5865f2' : '#4f545c'}">${initial}</div>
+                    <div class="user-name-text">${name} ${isOnline ? '●' : ''}</div>
+                `;
+                onlineList.appendChild(div);
             });
         });
-        
-        // Kiểm tra lệnh Kick từ Admin
-        database.ref("status/" + currentUsername).on("value", (snapshot) => {
-            if (snapshot.val() === false) {
-                alert("Bạn đã bị Admin mời ra khỏi phòng chat!");
-                location.reload();
-            }
-        });
-    }
+    });
+}
 
     function loadMessages() {
         database.ref("messages").limitToLast(50).on("value", (snapshot) => {
